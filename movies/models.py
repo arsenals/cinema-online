@@ -56,12 +56,18 @@ class Movie(models.Model):
     genres = models.ManyToManyField(Genre, verbose_name='жанры')
     category = models.ForeignKey(Category, verbose_name='Категория', on_delete=models.SET_NULL, null=True)
     url = models.SlugField(max_length=130, unique=True)
+    world_premiere = models.DateField("Примьера в мире", default=date.today)
+    budget = models.PositiveIntegerField("Бюджет", default=0,
+                                         help_text="указывать сумму в долларах")
 
     def __str__(self):
         return self.title
 
     def get_absolute_url(self):
-        return reverse('movie_detail', kwargs={'slug:self.url'})
+        return reverse("movie_detail", kwargs={"slug": self.url})
+
+    def get_review(self):
+        return self.reviews_set.filter(parent__isnull=True)
 
     class Meta:
         verbose_name = 'Фильм'

@@ -8,28 +8,28 @@ from .forms import ReviewForm, RatingForm
 
 
 class GenreYear:
-    def get_genre(self):
+    def get_genres(self):
         return Genre.objects.all()
 
     def get_years(self):
-        return Movie.objects.filter(draft=False).values('year')
+        return Movie.objects.all().values('year')
 
 
 class MoviesView(GenreYear, ListView):
     model = Movie
     queryset = Movie.objects.all()
-    paginate_by = 3
+    # paginate_by = 3
 
 
-class MovieDetailView(GenreYear, DetailView):
-    model = Movie
-    slug_field = 'url'
+class MovieDetailView(GenreYear, ListView):
+    def get(self, request, slug):
+        movie = Movie.objects.get(url=slug)
+        return render(request, 'movies/movie_detail.html', {'movie': movie})
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['star'] = RatingForm()
+        context['start_from'] = RatingForm()
         return context
-
 
 class AddReview(View):
     def post(self, request, pk):
@@ -39,13 +39,14 @@ class AddReview(View):
             form = form.save(commit=False)
             if request.POST.get('parent', None):
                 form.parent_id = int(request.POST.get('parent'))
-            form.movie_id = pk
+            form.movie = movie
             form.save()
         return redirect(movie.get_absolute_url())
 
 
 class FilterMoviesView(GenreYear, ListView):
-    paginate_by = 2
+    # paginate_by = 2
+
     def get_queryset(self):
         queryset = Movie.objects.filter(
             Q(year__in=self.request.GET.getlist('year')) |
@@ -63,7 +64,7 @@ class AddStarRating(View):
             ip = request.META.get('REMOTE_ADDR')
         return ip
 
-    def post(self,request):
+    def post(self, request):
         form = RatingForm(request.POST)
         if form.is_valid():
             Rating.objects.update_or_create(
@@ -75,13 +76,14 @@ class AddStarRating(View):
         else:
             return HttpResponse(status=400)
 
+
 class Search(ListView):
-    paginate_by = 3
+    # paginate_by = 3
 
     def get_queryset(self):
         return Movie.objects.filter(title__icontains=self.request.GET.get('q'))
 
-    def get_context_data(self, *args, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
-        context['q'] = f"{self.request.GET.get('q')}&"
-        return context
+    # def get_context_data(self, *args, **kwargs):
+    #     context = super().get_context_data(*args, **kwargs)
+    #     context['q'] = f"{self.request.GET.get('q')}&"
+    #     return context
