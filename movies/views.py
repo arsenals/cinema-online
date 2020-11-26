@@ -1,5 +1,5 @@
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect
 from django.views.generic import ListView, DetailView
 from django.views.generic.base import View
@@ -18,7 +18,7 @@ class GenreYear:
 class MoviesView(GenreYear, ListView):
     model = Movie
     queryset = Movie.objects.all()
-    # paginate_by = 3
+    paginate_by = 2
 
 
 class MovieDetailView(GenreYear, ListView):
@@ -31,6 +31,7 @@ class MovieDetailView(GenreYear, ListView):
         context['start_from'] = RatingForm()
         return context
 
+
 class AddReview(View):
     def post(self, request, pk):
         form = ReviewForm(request.POST)
@@ -41,11 +42,11 @@ class AddReview(View):
                 form.parent_id = int(request.POST.get('parent'))
             form.movie = movie
             form.save()
-        return redirect(movie.get_absolute_url())
+        return redirect('/')
 
 
 class FilterMoviesView(GenreYear, ListView):
-    # paginate_by = 2
+    paginate_by = 2
 
     def get_queryset(self):
         queryset = Movie.objects.filter(
@@ -53,6 +54,27 @@ class FilterMoviesView(GenreYear, ListView):
             Q(genres__in=self.request.GET.getlist('genre'))
         )
         return queryset
+
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context["year"] = ''.join([f"year={x}&" for x in self.request.GET.getlist("year")])
+        context["genre"] = ''.join([f"genre={x}&" for x in self.request.GET.getlist("genre")])
+        return context
+
+
+class JsonFilterMoviesView(ListView):
+    """Фильтр фильмов в json"""
+
+    def get_queryset(self):
+        queryset = Movie.objects.filter(
+            Q(year__in=self.request.GET.getlist("year")) |
+            Q(genres__in=self.request.GET.getlist("genre"))
+        ).distinct().values("title", "tagline", "url", "poster")
+        return queryset
+
+    def get(self, request, *args, **kwargs):
+        queryset = list(self.get_queryset())
+        return JsonResponse({"movies": queryset}, safe=False)
 
 
 class AddStarRating(View):
@@ -78,12 +100,12 @@ class AddStarRating(View):
 
 
 class Search(ListView):
-    # paginate_by = 3
+    paginate_by = 3
 
     def get_queryset(self):
         return Movie.objects.filter(title__icontains=self.request.GET.get('q'))
 
-    # def get_context_data(self, *args, **kwargs):
-    #     context = super().get_context_data(*args, **kwargs)
-    #     context['q'] = f"{self.request.GET.get('q')}&"
-    #     return context
+    def get_context_data(self, *args, **kwargs):
+        context = super().get_context_data(*args, **kwargs)
+        context['q'] = f"{self.request.GET.get('q')}&"
+        return context

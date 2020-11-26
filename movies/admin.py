@@ -21,7 +21,7 @@ class MovieAdmin(admin.ModelAdmin):
             'fields': (('title', 'tagline'),)
         }),
         (None, {
-            'fields': ('description', 'poster')
+            'fields': ('description', 'poster', 'movie_url')
         }),
         ('Actors', {
             'classes': ('collapse',),

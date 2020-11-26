@@ -59,6 +59,7 @@ class Movie(models.Model):
     world_premiere = models.DateField("Примьера в мире", default=date.today)
     budget = models.PositiveIntegerField("Бюджет", default=0,
                                          help_text="указывать сумму в долларах")
+    movie_url = models.URLField(max_length=255, blank=True)
 
     def __str__(self):
         return self.title
